@@ -51,6 +51,18 @@ class PermissionResource extends Resource
      */
     protected static ?int $navigationSort = 1;
 
+    public static function canAccess(): bool
+    {
+        return (bool) filament()->auth()->user()?->hasRole('Супер админ')
+            && parent::canAccess();
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return static::canAccess()
+            && parent::shouldRegisterNavigation();
+    }
+
     public static function form(Schema $schema): Schema
     {
         return PermissionForm::configure($schema);

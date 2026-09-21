@@ -26,6 +26,17 @@ class SectionResource extends Resource
 
     protected static string|UnitEnum|null $navigationGroup = 'Настройки';
 
+    public static function canAccess(): bool
+    {
+        return (bool) filament()->auth()->user()?->hasRole('Супер админ')
+            && parent::canAccess();
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return static::canAccess()
+            && parent::shouldRegisterNavigation();
+    }
     protected static ?string $navigationLabel = 'Разделы';
 
     protected static ?string $modelLabel = 'Раздел';

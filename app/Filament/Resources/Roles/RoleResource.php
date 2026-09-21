@@ -27,6 +27,17 @@ class RoleResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'Role';
 
+    public static function canAccess(): bool
+    {
+        return (bool) filament()->auth()->user()?->hasRole('Супер админ')
+            && parent::canAccess();
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return static::canAccess()
+            && parent::shouldRegisterNavigation();
+    }
 
     public static function form(Schema $schema): Schema
     {
