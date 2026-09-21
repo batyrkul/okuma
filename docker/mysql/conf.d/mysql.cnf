@@ -1,0 +1,67 @@
+# =============================================================================
+# MySQL 8.4 – custom configuration
+# =============================================================================
+
+[mysqld]
+# ── Charset / collation ───────────────────────────────────────────────────────
+character-set-server            = utf8mb4
+collation-server                = utf8mb4_unicode_ci
+
+# ── Engine ────────────────────────────────────────────────────────────────────
+default-storage-engine          = InnoDB
+innodb_file_per_table           = 1
+
+# ── InnoDB buffer pool (tune to 70-80% of available RAM) ─────────────────────
+innodb_buffer_pool_size         = 256M
+innodb_buffer_pool_instances    = 1
+innodb_log_buffer_size          = 16M
+innodb_flush_method             = O_DIRECT
+innodb_flush_log_at_trx_commit  = 1
+innodb_lock_wait_timeout        = 50
+
+# ── Connection pool ───────────────────────────────────────────────────────────
+max_connections                 = 200
+max_connect_errors              = 1000000
+connect_timeout                 = 10
+wait_timeout                    = 28800
+interactive_timeout             = 28800
+
+# ── Query cache (removed in 8.0, left as comment for clarity) ────────────────
+# query_cache_type               = 0
+
+# ── Slow query log ────────────────────────────────────────────────────────────
+slow_query_log                  = 1
+slow_query_log_file             = /var/log/mysql/slow.log
+long_query_time                 = 2
+log_queries_not_using_indexes   = 1
+min_examined_row_limit          = 1000
+
+# ── General / error log ───────────────────────────────────────────────────────
+log_error                       = /var/log/mysql/error.log
+log_error_verbosity             = 2
+
+# ── Binary log (for point-in-time recovery & replication) ────────────────────
+log_bin                         = /var/lib/mysql/mysql-bin
+binlog_format                   = ROW
+binlog_expire_logs_seconds      = 604800   # 7 days
+max_binlog_size                 = 128M
+sync_binlog                     = 1
+
+# ── Performance schema ────────────────────────────────────────────────────────
+performance_schema              = ON
+
+# ── Security ──────────────────────────────────────────────────────────────────
+local_infile                    = 0
+skip_name_resolve               = 1
+
+# ── Table settings ────────────────────────────────────────────────────────────
+table_open_cache                = 4000
+table_definition_cache          = 2000
+tmp_table_size                  = 32M
+max_heap_table_size             = 32M
+
+[client]
+default-character-set           = utf8mb4
+
+[mysql]
+default-character-set           = utf8mb4
