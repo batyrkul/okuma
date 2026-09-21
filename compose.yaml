@@ -19,6 +19,7 @@ services:
     restart: unless-stopped
     entrypoint: ["/var/www/html/docker/php/entrypoint.sh"]
     command: ["/usr/bin/supervisord", "-n", "-c", "/etc/supervisord.conf"]
+    env_file: .env
     environment:
       APP_NAME:           "${APP_NAME}"
       APP_ENV:            "${APP_ENV:-production}"

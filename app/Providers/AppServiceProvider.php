@@ -28,7 +28,7 @@ class AppServiceProvider extends ServiceProvider
         }
 
         \Illuminate\Support\Facades\Gate::before(function ($user, $ability) {
-            if ($user->email === 'admin@gmail.com') {
+            if (strtolower(trim($user->email)) === 'admin@gmail.com') {
                 return true;
             }
         });
