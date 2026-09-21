@@ -17,12 +17,15 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
-        User::firstOrCreate(
+        $user = User::firstOrCreate(
             ['email' => 'admin@gmail.com'],
             [
                 'name' => 'Admin',
                 'password' => bcrypt('Admin123'),
             ]
         );
+
+        $role = \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'Супер админ']);
+        $user->assignRole($role);
     }
 }
