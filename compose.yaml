@@ -1,56 +1,155 @@
+
+name: okuma
+
+x-healthcheck-defaults: &healthcheck-defaults
+  interval: 30s
+  timeout: 10s
+  retries: 5
+  start_period: 30s
+
 services:
-    laravel.test:
-        build:
-            context: './vendor/laravel/sail/runtimes/8.5'
-            dockerfile: Dockerfile
-            args:
-                WWWGROUP: '${WWWGROUP}'
-        image: 'sail-8.5/app'
-        extra_hosts:
-            - 'host.docker.internal:host-gateway'
-        ports:
-            - '${APP_PORT:-80}:80'
-            - '${VITE_PORT:-5173}:${VITE_PORT:-5173}'
-        environment:
-            WWWUSER: '${WWWUSER}'
-            LARAVEL_SAIL: 1
-            XDEBUG_MODE: '${SAIL_XDEBUG_MODE:-off}'
-            XDEBUG_CONFIG: '${SAIL_XDEBUG_CONFIG:-client_host=host.docker.internal}'
-            IGNITION_LOCAL_SITES_PATH: '${PWD}'
-        volumes:
-            - '.:/var/www/html'
-        networks:
-            - sail
-        depends_on:
-            - mysql
-    mysql:
-        image: 'mysql:8.4'
-        ports:
-            - '${FORWARD_DB_PORT:-3306}:3306'
-        environment:
-            MYSQL_ROOT_PASSWORD: '${DB_PASSWORD}'
-            MYSQL_ROOT_HOST: '%'
-            MYSQL_DATABASE: '${DB_DATABASE}'
-            MYSQL_USER: '${DB_USERNAME}'
-            MYSQL_PASSWORD: '${DB_PASSWORD}'
-            MYSQL_ALLOW_EMPTY_PASSWORD: 1
-            MYSQL_EXTRA_OPTIONS: '${MYSQL_EXTRA_OPTIONS:-}'
-        volumes:
-            - 'sail-mysql:/var/lib/mysql'
-            - './vendor/laravel/sail/database/mysql/create-testing-database.sh:/docker-entrypoint-initdb.d/10-create-testing-database.sh'
-        networks:
-            - sail
-        healthcheck:
-            test:
-                - CMD
-                - mysqladmin
-                - ping
-                - '-p${DB_PASSWORD}'
-            retries: 3
-            timeout: 5s
+
+  app:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      target: runtime
+    image: okuma/app:latest
+    container_name: okuma_app
+    restart: unless-stopped
+    entrypoint: ["/var/www/html/docker/php/entrypoint.sh"]
+    command: ["/usr/bin/supervisord", "-n", "-c", "/etc/supervisord.conf"]
+    env_file: .env
+    environment:
+      APP_NAME:           "${APP_NAME}"
+      APP_ENV:            "${APP_ENV:-production}"
+      APP_KEY:            "${APP_KEY}"
+      APP_DEBUG:          "${APP_DEBUG:-false}"
+      APP_URL:            "${APP_URL}"
+
+      DB_CONNECTION:      mysql
+      DB_HOST:            mysql
+      DB_PORT:            3306
+      DB_DATABASE:        "${DB_DATABASE}"
+      DB_USERNAME:        "${DB_USERNAME}"
+      DB_PASSWORD:        "${DB_PASSWORD}"
+
+      CACHE_STORE:        "${CACHE_STORE:-database}"
+      QUEUE_CONNECTION:   "${QUEUE_CONNECTION:-database}"
+      SESSION_DRIVER:     "${SESSION_DRIVER:-database}"
+
+      LOG_CHANNEL:        "${LOG_CHANNEL:-stack}"
+      LOG_LEVEL:          "${LOG_LEVEL:-error}"
+
+      RUN_MIGRATIONS:     "${RUN_MIGRATIONS:-true}"
+    volumes:
+      - app_public:/var/www/html/public
+      - app_storage:/var/www/html/storage
+      - app_bootstrap_cache:/var/www/html/bootstrap/cache
+    networks:
+      - backend
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      <<: *healthcheck-defaults
+      test: ["CMD-SHELL", "SCRIPT_NAME=/ping SCRIPT_FILENAME=/ping REQUEST_METHOD=GET cgi-fcgi -bind -connect 127.0.0.1:9000 2>/dev/null || exit 1"]
+
+  nginx:
+    build:
+      context: .
+      dockerfile: docker/nginx/Dockerfile
+    image: okuma/nginx:latest
+    container_name: okuma_nginx
+    restart: unless-stopped
+    ports:
+      - "${HTTP_PORT:-80}:80"
+    environment:
+      NGINX_HOST: "${NGINX_HOST:-localhost}"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
+      - app_public:/var/www/html/public:ro
+      - app_storage:/var/www/html/storage:ro
+      - nginx_logs:/var/log/nginx
+    networks:
+      - frontend
+      - backend
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      <<: *healthcheck-defaults
+      test: ["CMD", "curl", "-f", "http://localhost/nginx-health"]
+
+  # ════════════════════════════════════════════════════════════════════════════
+  # MySQL 8.0 (v8.0.31) - Last version before x86-64-v2 CPU requirements
+  # ════════════════════════════════════════════════════════════════════════════
+  mysql:
+    image: mysql:8.0.31
+    container_name: okuma_mysql
+    restart: unless-stopped
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD}"
+      MYSQL_DATABASE:      "${DB_DATABASE}"
+      MYSQL_USER:          "${DB_USERNAME}"
+      MYSQL_PASSWORD:      "${DB_PASSWORD}"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - mysql_logs:/var/log/mysql
+      - ./docker/mysql/conf.d:/etc/mysql/conf.d:ro
+      - ./docker/mysql/initdb.d:/docker-entrypoint-initdb.d:ro
+    networks:
+      - backend
+    ports:
+      - "${FORWARD_DB_PORT:-127.0.0.1:3306}:3306"
+    healthcheck:
+      <<: *healthcheck-defaults
+      test: ["CMD", "mysqladmin", "ping", "-u", "root", "-p${DB_ROOT_PASSWORD}", "--silent"]
+
+  phpmyadmin:
+    image: phpmyadmin:5.2-apache
+    container_name: okuma_phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST:          mysql
+      PMA_PORT:          3306
+      PMA_USER:          "${DB_USERNAME}"
+      PMA_PASSWORD:      "${DB_PASSWORD}"
+      MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD}"
+      PMA_ARBITRARY:     0
+      UPLOAD_LIMIT:      64M
+      MAX_EXECUTION_TIME: 300
+    ports:
+      - "127.0.0.1:${PMA_PORT:-8080}:80"
+    networks:
+      - backend
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      <<: *healthcheck-defaults
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+
 networks:
-    sail:
-        driver: bridge
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge
+    internal: true
 volumes:
-    sail-mysql:
-        driver: local
+  mysql_data:
+    driver: local
+  mysql_logs:
+    driver: local
+  nginx_logs:
+    driver: local
+  app_public:
+    driver: local
+  app_storage:
+    driver: local
+  app_bootstrap_cache:
+    driver: local
