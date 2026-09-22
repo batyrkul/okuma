@@ -121,10 +121,11 @@ services:
       PMA_PASSWORD:      "${DB_PASSWORD}"
       MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD}"
       PMA_ARBITRARY:     0
+      PMA_ABSOLUTE_URI:  "https://okuma.net.kg/phpmyadmin/"
       UPLOAD_LIMIT:      64M
       MAX_EXECUTION_TIME: 300
     ports:
-      - "127.0.0.1:${PMA_PORT:-8080}:80"
+      - "127.0.0.1:8080:80"
     networks:
       - backend
     depends_on:
