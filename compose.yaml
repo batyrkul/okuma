@@ -117,8 +117,6 @@ services:
     environment:
       PMA_HOST:          mysql
       PMA_PORT:          3306
-      PMA_USER:          "${DB_USERNAME}"
-      PMA_PASSWORD:      "${DB_PASSWORD}"
       MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD}"
       PMA_ARBITRARY:     0
       PMA_ABSOLUTE_URI:  "https://okuma.net.kg/phpmyadmin/"
