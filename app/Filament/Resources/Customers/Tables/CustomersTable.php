@@ -19,6 +19,10 @@ class CustomersTable
                     ->label('Аталышы')
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('phone')
+                    ->label('Телефон')
+                    ->searchable()
+                    ->sortable(),
 
                 TextColumn::make('aimak.name')
                     ->label('Аймак')

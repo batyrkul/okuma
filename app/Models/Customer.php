@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 class Customer extends Model
 {
     //
-    protected $fillable = ['name', 'aimak_id','bolge_id'];
+    protected $fillable = ['name', 'aimak_id','bolge_id','phone'];
 
     public function bolge(){
         return $this->belongsTo(Bolge::class);

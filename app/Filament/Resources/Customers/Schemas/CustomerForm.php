@@ -20,7 +20,10 @@ class CustomerForm
                     ->label('Аталышы')
                     ->required()
                     ->maxLength(255),
-
+                TextInput::make('phone')
+                    ->label('телефон')
+                    ->required()
+                    ->maxLength(255),
                 Select::make('aimak_id')
                     ->label('Аймак')
                     ->relationship(
