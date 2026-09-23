@@ -43,7 +43,11 @@ services:
 
       RUN_MIGRATIONS:     "${RUN_MIGRATIONS:-true}"
     volumes:
-      - .:/var/www/html
+      - ./app:/var/www/html/app
+      - ./routes:/var/www/html/routes
+      - ./config:/var/www/html/config
+      - ./database:/var/www/html/database
+      - ./resources/views:/var/www/html/resources/views
       - app_public:/var/www/html/public
       - app_storage:/var/www/html/storage
       - app_bootstrap_cache:/var/www/html/bootstrap/cache
@@ -70,7 +74,7 @@ services:
     volumes:
       - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
-      - ./public:/var/www/html/public:ro
+      - app_public:/var/www/html/public:ro
       - app_storage:/var/www/html/storage:ro
       - nginx_logs:/var/log/nginx
     networks:
@@ -120,13 +124,12 @@ services:
       PMA_PORT:          3306
       MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD}"
       PMA_ARBITRARY:     0
-      PMA_ABSOLUTE_URI: "http://localhost:8080/"
+      PMA_ABSOLUTE_URI:  "https://okuma.net.kg/phpmyadmin/"
       UPLOAD_LIMIT:      64M
       MAX_EXECUTION_TIME: 300
     ports:
       - "127.0.0.1:8080:80"
     networks:
-      - frontend
       - backend
     depends_on:
       mysql:
