@@ -89,7 +89,7 @@ class User extends Authenticatable implements \Filament\Models\Contracts\Filamen
 
     public function canAccessPanel(Panel $panel): bool
     {
-        return $this->email === 'admin@gmail.com' || $this->can('admin_panel');
+        return true;
     }
 
 }
